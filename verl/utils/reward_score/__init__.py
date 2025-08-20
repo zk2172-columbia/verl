@@ -40,7 +40,8 @@ def default_compute_score(
     Raises:
         NotImplementedError: If the reward function is not implemented for the given data source.
     """
-    if data_source == "openai/gsm8k":
+    # if data_source == "openai/gsm8k":
+    if data_source.startswith("openai/gsm8k"):
         from . import gsm8k
 
         res = gsm8k.compute_score(solution_str, ground_truth)

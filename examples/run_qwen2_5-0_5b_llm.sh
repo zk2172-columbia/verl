@@ -9,6 +9,9 @@ python3 -m verl.trainer.main_ppo \
     data.max_response_length=128 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
+    data.sampler.class_path=$HOME/Documents/lm/verl/verl/experimental/dataset/sampler.py \
+    data.sampler.class_name=GreedySampler \
+    data.dataloader_num_workers=0 \
     actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
@@ -31,7 +34,7 @@ python3 -m verl.trainer.main_ppo \
     algorithm.use_kl_in_reward=False \
     trainer.critic_warmup=0 \
     trainer.logger=console \
-    trainer.project_name='verl_grpo_example_gsm8k-partitioned' \
+    trainer.project_name='verl_grpo_example_gsm8k-partitioned-greedy' \
     trainer.experiment_name='qwen_2_5_0_5b_llm' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \

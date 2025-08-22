@@ -357,7 +357,8 @@ def create_rl_sampler(data_config, dataset):
             data_source=dataset,
             data_config=data_config,
         )
-        assert isinstance(sampler, AbstractSampler)
+        # breakpoint()
+        # assert isinstance(sampler, AbstractSampler)
         assert data_config.get("dataloader_num_workers", 8) == 0, (
             "If using curriculum, num_workers must be 0 to prevent data caching. "
             "If the dataloader caches data before the batch is done the "

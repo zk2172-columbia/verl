@@ -1352,8 +1352,9 @@ class RayPPOTrainer:
                 metrics.update(compute_throughout_metrics(batch=batch, timing_raw=timing_raw, n_gpus=n_gpus))
 
                 # this is experimental and may be changed/removed in the future in favor of a general-purpose one
-                if isinstance(self.train_dataloader.sampler, AbstractCurriculumSampler):
-                    self.train_dataloader.sampler.update(batch=batch)
+                # if isinstance(self.train_dataloader.sampler, AbstractCurriculumSampler):
+                if hasattr(self.train_dataloader.sampler, "update"):
+                    self.train_dataloader.sampler.update(batch=batch, metrics=metrics)
 
                 # TODO: make a canonical logger that supports various backend
                 logger.log(data=metrics, step=self.global_steps)

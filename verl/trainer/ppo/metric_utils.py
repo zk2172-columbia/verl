@@ -125,15 +125,79 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
     non_aborted_sequence_reward = sequence_reward[non_aborted_mask]
 
     score_mean = torch.mean(non_aborted_sequence_score).detach().item()
-    score_max = torch.max(non_aborted_sequence_score).detach().item()
-    score_min = torch.min(non_aborted_sequence_score).detach().item()
+    # score_max = torch.max(non_aborted_sequence_score).detach().item()
+    # score_min = torch.min(non_aborted_sequence_score).detach().item()
 
     reward_mean = torch.mean(non_aborted_sequence_reward).detach().item()
-    reward_max = torch.max(non_aborted_sequence_reward).detach().item()
-    reward_min = torch.min(non_aborted_sequence_reward).detach().item()
+    # reward_max = torch.max(non_aborted_sequence_reward).detach().item()
+    # reward_min = torch.min(non_aborted_sequence_reward).detach().item()
 
     valid_adv = torch.masked_select(advantages, response_mask)
     valid_returns = torch.masked_select(returns, response_mask)
+
+    # source specific metrics
+    data_sources = batch.non_tensor_batch['data_source']
+    data_source_names, data_source_inverse = np.unique(data_sources, return_inverse=True)
+
+    valid_adv_sources, valid_returns_sources = {}, {}
+    non_aborted_sequence_score_sources, non_aborted_sequence_reward_sources = {}, {}
+    n_samples_sources = {}
+
+    for i, n in enumerate(data_source_names):
+        # indices
+        ids = np.where(data_source_inverse == i)
+        n_samples_sources[n] = len(ids[0])
+        mask = response_mask[ids]
+        # adv/return
+        valid_adv_sources[n] = torch.masked_select(advantages[ids], mask)
+        valid_returns_sources[n] = torch.masked_select(returns[ids], mask)
+        # score/reward
+        non_aborted_sequence_score_sources[n] = non_aborted_sequence_score[ids]
+        non_aborted_sequence_reward_sources[n] = non_aborted_sequence_reward[ids]
+
+    
+    adv_sources_mean = {
+        n: torch.mean(adv).detach().item()
+        for n, adv in valid_adv_sources.items()
+    }
+    adv_sources_std = {
+        n: torch.std(adv).detach().item()
+        for n, adv in valid_adv_sources.items()
+    }
+    adv_min_source = min(adv_sources_mean, key=adv_sources_mean.get)
+
+    returns_sources_mean = {
+        n: torch.mean(adv).detach().item()
+        for n, adv in valid_returns_sources.items()
+    }
+    returns_sources_std = {
+        n: torch.std(adv).detach().item()
+        for n, adv in valid_returns_sources.items()
+    }
+    returns_min_source = min(returns_sources_mean, key=returns_sources_mean.get)
+
+    score_sources_mean = {
+        n: torch.mean(scr)
+        for n, scr in non_aborted_sequence_score_sources.items()
+    }
+    score_sources_std = {
+        n: torch.std(scr)
+        for n, scr in non_aborted_sequence_score_sources.items()
+    }
+    score_min_source = min(score_sources_mean, key=score_sources_mean.get)
+
+    rewards_sources_mean = {
+        n: torch.mean(scr).item()
+        for n, scr in non_aborted_sequence_reward_sources.items()
+    }
+    rewards_sources_std = {
+        n: torch.std(scr).item()
+        for n, scr in non_aborted_sequence_reward_sources.items()
+    }
+    rewards_min_source = min(rewards_sources_mean, key=rewards_sources_mean.get)
+
+    n_samples_min_source = min(n_samples_sources, key=n_samples_sources.get)
+    n_samples_max_source = max(n_samples_sources, key=n_samples_sources.get)
 
     if use_critic:
         values = batch.batch["values"]
@@ -159,20 +223,43 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
     metrics = {
         # score
         "critic/score/mean": score_mean,
-        "critic/score/max": score_max,
-        "critic/score/min": score_min,
+        # "critic/score/max": score_max,
+        # "critic/score/min": score_min,
+        "critic/score/min/source": score_min_source,
+        "critic/score/min/value": score_sources_mean[score_min_source],
+        "critic/score/sources/mean": score_sources_mean,
+        "critic/score/sources/std": score_sources_std,
         # reward
         "critic/rewards/mean": reward_mean,
-        "critic/rewards/max": reward_max,
-        "critic/rewards/min": reward_min,
+        # "critic/rewards/max": reward_max,
+        # "critic/rewards/min": reward_min,
+        "critic/rewards/min/source": rewards_min_source,
+        "critic/rewards/min/value": rewards_sources_mean[rewards_min_source],
+        "critic/rewards/sources/mean": rewards_sources_mean,
+        "critic/rewards/sources/std": rewards_sources_std,
         # adv
         "critic/advantages/mean": torch.mean(valid_adv).detach().item(),
-        "critic/advantages/max": torch.max(valid_adv).detach().item(),
-        "critic/advantages/min": torch.min(valid_adv).detach().item(),
+        # "critic/advantages/max": torch.max(valid_adv).detach().item(),
+        # "critic/advantages/min": torch.min(valid_adv).detach().item(),
+        "critic/advantages/min/source": adv_min_source,
+        "critic/advantages/min/value": adv_sources_mean[adv_min_source],
+        "critic/advantages/sources/mean": adv_sources_mean,
+        "critic/advantages/sources/std": adv_sources_std,
         # returns
         "critic/returns/mean": torch.mean(valid_returns).detach().item(),
-        "critic/returns/max": torch.max(valid_returns).detach().item(),
-        "critic/returns/min": torch.min(valid_returns).detach().item(),
+        # "critic/returns/max": torch.max(valid_returns).detach().item(),
+        # "critic/returns/min": torch.min(valid_returns).detach().item(),
+        "critic/returns/min/source": returns_min_source,
+        "critic/returns/min/value": returns_sources_mean[returns_min_source],
+        "critic/returns/sources/mean": returns_sources_mean,
+        "critic/returns/sources/std": returns_sources_std,
+        # source mets
+        "data/sources": data_source_names,
+        "data/nsamples/min/source": n_samples_min_source,
+        "data/nsamples/min/value": n_samples_sources[n_samples_min_source],
+        "data/nsamples/max/source": n_samples_max_source,
+        "data/nsamples/max/value": n_samples_sources[n_samples_max_source],
+        "data/nsamples/sources": n_samples_sources,
         **(
             {
                 # values

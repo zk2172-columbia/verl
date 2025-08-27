@@ -127,82 +127,38 @@ class GreedySampler(AdaptiveSampler):
         # select based on lastest minimum adv
         # adv = [h['adv_mean'][-1] for h in self.hists.values()]
         adv = [h['reward_mean'][-1] for h in self.hists.values()]
-        k = np.argmin(adv)
         # set p
-        pmin = 0.2
-        self.weights.fill(pmin)
-        self.weights[k] = 1. - pmin * (len(self.weights) - 1)
+        # k = np.argmin(adv)
+        self.weights[0] = 0.
+        self.weights[1] = 1.
+        # pmin = 0.2
+        # self.weights.fill(pmin)
+        # self.weights[k] = 1. - pmin * (len(self.weights) - 1)
 
 
-# class Exp3Sampler(AbstractSampler):
-#     """
-#     BatchSampler that works with Exp3Sampler, inheriting from UCBBatchSampler.
-#     Only __init__ and __iter__ are overridden to swap UCB metrics for Exp3.
-#     """
-#     def __init__(
-#         self,
-#         data_source: RLHFDataset,
-#         data_config: DictConfig,
-#     ):
-#         super().__init__(data_source=data_source, data_config=data_config)
-#         self.dataset = data_source
+class Exp3Sampler(AdaptiveSampler):
+    """
+    Greedy sampler
+    Implement the update method
+    """
 
-#         self.batch_size = data_config.train_batch_size
-#         self.gamma = 0.1
+    def __init__(self, data_source, data_config):
+        super().__init__(data_source, data_config)
 
-#         self.sources = self.dataset.dataframe.select_columns('data_source').to_pandas()
-#         breakpoint()
-#         self.source_names = np.unique(self.sources)
-#         self.n_sources = len(self.source_names)
+        self.eta = 1.
+        self.adv_cum = np.zeros_like(self.weights)
 
-#     def __len__(self) -> int:
-#         return len(self.dataset)
+    def _exp3(self, x, eta):
+        e_x = np.exp(-eta * (x - np.max(x)))
+        return e_x / np.sum(e_x)
 
-#     def __iter__(self) -> Iterator[List[int]]:
-#         # Same bucketing logic as UCBBatchSampler
-#         buckets = {src: [] for src in self.source_names}
-#         for idx in range(len(self.sources)):
-#             src = self.sources[idx]
-#             buckets[src].append(idx)
-#         for b in buckets:
-#             random.shuffle(b)
-
-#         breakpoint()
-
-#         while True:
-#             probs = self.ucb_sampler.select_source()
-#             batch = []
-#             cnt_per_src = [0] * self.n_sources
-#             attempts = 0
-#             while len(batch) < self.batch_size and attempts < self.batch_size * 10:
-#                 s = random.choices(
-#                     range(self.n_sources),
-#                     weights=probs,
-#                     k=1
-#                 )[0]
-#                 if buckets[s]:
-#                     batch.append(buckets[s].pop())
-#                     cnt_per_src[s] += 1
-#                 attempts += 1
-
-#             if len(batch) == self.batch_size or (not self.drop_last and batch):
-#                 self.ucb_sampler.src_cnt = cnt_per_src
-#                 # Print Exp3-specific metrics including counts and inherited stats
-#                 print(
-#                     f"Exp3 t={self.ucb_sampler.t}, "
-#                     f"R={self.ucb_sampler.R}, "
-#                     f"N={self.ucb_sampler.N}, "
-#                     f"w={self.ucb_sampler.w}, "
-#                     f"probs={probs}, "
-#                     f"cnt={cnt_per_src}"
-#                 )
-#                 yield batch
-#             else:
-#                 break
-
-#     def update(self, batch):
-#         return self.ucb_sampler.update(probs, metrics)
-
-#     @property
-#     def last_probs(self) -> List[float]:
-#         return self.ucb_sampler.last_probs
+    def update(self, batch, metrics):
+        super().update(batch, metrics)
+        adv = [h['adv_mean'][-1] for h in self.hists.values()]
+        # adv = [h['reward_mean'][-1] for h in self.hists.values()]
+        k = np.random.choice(len(adv), p=self.weights)
+        self.adv_cum[k] += adv[k] / self.weights[k]
+        # set p
+        self.weights = self._exp3(self.adv_cum, eta=self.eta)
+        print(self.weights)
+        print(self.adv_cum)

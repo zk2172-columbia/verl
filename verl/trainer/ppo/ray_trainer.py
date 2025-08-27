@@ -1091,6 +1091,8 @@ class RayPPOTrainer:
         )
         next_step_profile = False
 
+        metrics_hist = []
+
         for epoch in range(self.config.trainer.total_epochs):
             for batch_dict in self.train_dataloader:
                 metrics = {}
@@ -1358,6 +1360,15 @@ class RayPPOTrainer:
 
                 # TODO: make a canonical logger that supports various backend
                 logger.log(data=metrics, step=self.global_steps)
+                metrics_hist.append(deepcopy(metrics))
+
+                if self.config.trainer.save_freq > 0 and (
+                    is_last_step or self.global_steps % self.config.trainer.save_freq == 0 or esi_close_to_expiration
+                ):
+                    import pickle
+                    with open(os.path.join(self.config.trainer.default_local_dir, f"global_step_{self.global_steps}/metrics.pkl"), 'wb') as f:
+                        pickle.dump(metrics_hist, f)
+                    metrics_hist = []
 
                 progress_bar.update(1)
                 self.global_steps += 1

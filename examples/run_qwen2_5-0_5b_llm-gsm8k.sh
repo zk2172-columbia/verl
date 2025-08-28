@@ -6,7 +6,7 @@ python3 -m verl.trainer.main_ppo \
     data.val_files=$HOME/Documents/data/gsm8k-partitioned/test.parquet \
     data.train_batch_size=64 \
     data.max_prompt_length=512 \
-    data.max_response_length=512 \
+    data.max_response_length=1024 \
     data.filter_overlong_prompts=True \
     data.truncation='error' \
     data.sampler.class_path=$HOME/Documents/lm/verl/verl/experimental/dataset/sampler.py \
@@ -41,4 +41,4 @@ python3 -m verl.trainer.main_ppo \
     trainer.save_freq=10 \
     trainer.test_freq=1 \
     trainer.total_epochs=3 \
-    trainer.resume_mode=enable $@
+    trainer.resume_mode=disable $@

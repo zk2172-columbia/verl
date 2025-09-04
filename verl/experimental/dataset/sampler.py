@@ -67,9 +67,10 @@ class AdaptiveSampler(AbstractSampler):
             for n, ids in self.source_df.groupby('data_source')
         }
         self.source_names = list(self.source_ids.keys())
+        self.n_sources = len(self.source_names)
 
         self.step = 0
-        self.weights = np.ones(len(self.source_names)) / len(self.source_names)
+        self.weights = np.ones(self.n_sources) / self.n_sources
         self.hists = {n: {k: [] for k in [
             'step', 'nsamples',
             'adv_mean', 'adv_std', 'reward_mean', 'reward_std',
@@ -85,12 +86,11 @@ class AdaptiveSampler(AbstractSampler):
         """
         source_ids = [ids.sample(frac=1).values for ids in self.source_ids.values()]
         n_samples_all = np.array([len(ids) for ids in source_ids])
-        n_sources = len(source_ids)
 
         indices = np.zeros_like(n_samples_all, dtype=int)
 
         while (indices < n_samples_all).all():
-            k = np.random.choice(n_sources, p=self.weights)
+            k = np.random.choice(self.n_sources, p=self.weights)
             i = int(source_ids[k][indices[k]])
             indices[k] += 1
             yield i
@@ -145,7 +145,6 @@ class Exp3Sampler(AdaptiveSampler):
     def __init__(self, data_source, data_config):
         super().__init__(data_source, data_config)
 
-        self.eta = 1.
         self.adv_cum = np.zeros_like(self.weights)
 
     def _exp3(self, x, eta):
@@ -159,6 +158,5 @@ class Exp3Sampler(AdaptiveSampler):
         k = np.random.choice(len(adv), p=self.weights)
         self.adv_cum[k] += adv[k] / self.weights[k]
         # set p
-        self.weights = self._exp3(self.adv_cum, eta=self.eta)
-        print(self.weights)
-        print(self.adv_cum)
+        eta = np.sqrt(np.log(self.n_sources) / (self.n_sources * self.step))
+        self.weights = self._exp3(self.adv_cum, eta=eta)

@@ -2,8 +2,9 @@ set -x
 
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=$HOME/Documents/data/math-tiny/train.parquet \
-    data.val_files=$HOME/Documents/data/math-tiny/test.parquet \
+    algorithm.norm_adv_by_std_in_grpo=False \
+    data.train_files=$HOME/Documents/data/math-partitioned/train.parquet \
+    data.val_files=$HOME/Documents/data/math-partitioned/test.parquet \
     data.train_batch_size=32 \
     data.max_prompt_length=512 \
     data.max_response_length=512 \
@@ -11,7 +12,7 @@ python3 -m verl.trainer.main_ppo \
     data.truncation='error' \
     data.dataloader_num_workers=0 \
     data.sampler.class_path=$HOME/Documents/lm/verl/verl/experimental/dataset/sampler.py \
-    data.sampler.class_name=RandomSampler \
+    data.sampler.class_name=Exp3Sampler \
     actor_rollout_ref.model.path=Qwen/Qwen2.5-0.5B-Instruct \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.model.use_remove_padding=True \
@@ -35,10 +36,10 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=console \
     trainer.project_name='verl_grpo_example_math' \
-    trainer.experiment_name='qwen_2_5_0_5b_llm-math_tiny-random' \
+    trainer.experiment_name='qwen_2_5_0_5b_llm-math-exp3_adv_dr' \
     trainer.n_gpus_per_node=1 \
     trainer.nnodes=1 \
-    trainer.save_freq=5 \
+    trainer.save_freq=10 \
     trainer.test_freq=1 \
     trainer.total_epochs=1 \
     trainer.resume_mode=disable $@

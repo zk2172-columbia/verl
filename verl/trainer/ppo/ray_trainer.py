@@ -1071,6 +1071,9 @@ class RayPPOTrainer:
             if self.config.trainer.get("val_only", False):
                 return
 
+        if hasattr(self.train_dataloader.sampler, "register_initial_scores"):
+            self.train_dataloader.sampler.register_initial_scores(val_metrics)
+
         if self.config.actor_rollout_ref.rollout.get("skip_rollout", False):
             rollout_skip = RolloutSkip(self.config, self.actor_rollout_wg)
             rollout_skip.wrap_generate_sequences()
@@ -1368,7 +1371,7 @@ class RayPPOTrainer:
                     import pickle
                     with open(os.path.join(self.config.trainer.default_local_dir, f"global_step_{self.global_steps}/metrics.pkl"), 'wb') as f:
                         pickle.dump(metrics_hist, f)
-                    metrics_hist = []
+                    # metrics_hist = []
 
                 progress_bar.update(1)
                 self.global_steps += 1

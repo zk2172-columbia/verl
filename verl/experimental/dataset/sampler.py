@@ -77,6 +77,8 @@ class AdaptiveSampler(AbstractSampler):
             'weight',
         ]} for n in self.source_names}
 
+        self.initial_scrs = None
+
     def __len__(self) -> int:
         return len(self.dataset)
 
@@ -103,9 +105,14 @@ class AdaptiveSampler(AbstractSampler):
             self.hists[n]['nsamples'].append(metrics['data/nsamples/sources'][n])
             self.hists[n]['adv_mean'].append(metrics['critic/advantages/sources/mean'][n])
             self.hists[n]['adv_std'].append(metrics['critic/advantages/sources/std'][n])
-            self.hists[n]['reward_mean'].append(metrics['critic/rewards/sources/mean'][n])
-            self.hists[n]['reward_std'].append(metrics['critic/rewards/sources/std'][n])
+            self.hists[n]['scr_mean'].append(metrics['critic/score/sources/mean'][n])
+            self.hists[n]['scr_std'].append(metrics['critic/score/sources/std'][n])
             self.hists[n]['weight'].append(self.weights[self.source_names.index(n)])
+
+    def register_initial_scores(self, metrics):
+        for k, s in metrics.items():
+            name = k.split('/')[-3]
+            self.initial_scrs[name] = s
 
 
 class RandomSampler(AdaptiveSampler):
@@ -153,8 +160,9 @@ class Exp3Sampler(AdaptiveSampler):
 
     def update(self, batch, metrics):
         super().update(batch, metrics)
-        adv = [h['adv_mean'][-1] for h in self.hists.values()]
+        # adv = [h['adv_mean'][-1] for h in self.hists.values()]
         # adv = [h['reward_mean'][-1] for h in self.hists.values()]
+        adv = [h['reward_mean'][-1] - self.initial_scrs[k] for k, h in self.hists.items()]
         k = np.random.choice(len(adv), p=self.weights)
         self.adv_cum[k] += adv[k] / self.weights[k]
         # set p

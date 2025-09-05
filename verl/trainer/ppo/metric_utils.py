@@ -177,11 +177,11 @@ def compute_data_metrics(batch: DataProto, use_critic: bool = True) -> dict[str,
     returns_min_source = min(returns_sources_mean, key=returns_sources_mean.get)
 
     score_sources_mean = {
-        n: torch.mean(scr)
+        n: torch.mean(scr).item()
         for n, scr in non_aborted_sequence_score_sources.items()
     }
     score_sources_std = {
-        n: torch.std(scr)
+        n: torch.std(scr).item()
         for n, scr in non_aborted_sequence_score_sources.items()
     }
     score_min_source = min(score_sources_mean, key=score_sources_mean.get)

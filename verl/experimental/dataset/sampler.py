@@ -159,6 +159,7 @@ class Exp3Sampler(AdaptiveSampler):
         super().__init__(data_source, data_config)
 
         self.adv_cum = np.zeros_like(self.weights)
+        self.eps = 1e-3
 
     def _exp3(self, x, eta):
         e_x = np.exp(-eta * (x - np.max(x)))
@@ -166,12 +167,18 @@ class Exp3Sampler(AdaptiveSampler):
 
     def update(self, batch, metrics):
         super().update(batch, metrics)
-        breakpoint()
         # adv = [h['adv_mean'][-1] for h in self.hists.values()]
         # adv = [h['reward_mean'][-1] for h in self.hists.values()]
-        adv = [h['rwd_mean'][-1] - self.initial_scrs[k] for k, h in self.hists.items()]
-        k = np.random.choice(len(adv), p=self.weights)
-        self.adv_cum[k] += adv[k] / self.weights[k]
+        # adv = h['rwd_mean'][-1] - self.initial_scrs[k] for k, h in self.hists.items()]
+        # self.adv_cum[k] += adv[k] / self.weights[k]
+        adv = np.array([
+            h['scr_mean'][-1] - self.initial_scrs[k]
+            if h['step'][-1] == self.step else 0.
+            for k, h in self.hists.items()
+        ])
+        self.adv_cum += adv / (self.weights + self.eps)
         # set p
         eta = np.sqrt(np.log(self.n_sources) / (self.n_sources * self.step))
         self.weights = self._exp3(self.adv_cum, eta=eta)
+        print(self.adv_cum)
+        print(self.weights)

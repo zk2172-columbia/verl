@@ -1371,7 +1371,7 @@ class RayPPOTrainer:
                     import pickle
                     with open(os.path.join(self.config.trainer.default_local_dir, f"global_step_{self.global_steps}/metrics.pkl"), 'wb') as f:
                         pickle.dump(metrics_hist, f)
-                    # metrics_hist = []
+                    metrics_hist = []
 
                 progress_bar.update(1)
                 self.global_steps += 1

@@ -182,3 +182,38 @@ class Exp3Sampler(AdaptiveSampler):
         self.weights = self._exp3(self.adv_cum, eta=eta)
         print(self.adv_cum)
         print(self.weights)
+
+
+class ExpSampler(AdaptiveSampler):
+    """
+    Greedy sampler
+    Implement the update method
+    """
+
+    def __init__(self, data_source, data_config):
+        super().__init__(data_source, data_config)
+
+        self.adv_cum = np.zeros_like(self.weights)
+        self.adv_mov = np.zeros_like(self.weights)
+        self.eps = 1e-3
+        self.beta = 0.9
+
+    def _exp3(self, x, eta):
+        e_x = np.exp(-eta * (x - np.max(x)))
+        return e_x / np.sum(e_x)
+
+    def update(self, batch, metrics):
+        super().update(batch, metrics)
+        adv = np.array([
+            (h['scr_mean'][-1] - h['scr_mean'][-2]) / (h['step'][-1] - h['step'][-2] + self.eps)
+            if len(h['scr_mean']) >= 2 else 0. #h['scr_mean'][-1] - self.initial_scrs[k]
+            for k, h in self.hists.items()
+        ]) / (self.weights + self.eps)
+        self.adv_mov = self.beta * self.adv_cum + (1 - self.beta) * adv
+        self.adv_cum += self.adv_mov / (1 - self.beta**self.step)
+        # set p
+        eta = np.sqrt(np.log(self.n_sources) / (self.n_sources * self.step))
+        self.weights = self._exp3(self.adv_cum, eta=eta)
+        print(self.adv_mov)
+        print(self.adv_cum)
+        print(self.weights)

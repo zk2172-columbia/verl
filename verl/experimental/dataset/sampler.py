@@ -161,6 +161,16 @@ class Exp3Sampler(AdaptiveSampler):
         self.adv_cum = np.zeros_like(self.weights)
         self.eps = 1e-3
 
+        self.benchmarks = {
+            'DigitalLearningGmbH/MATH-lighteval/Algebra':                   0.732883,
+            'DigitalLearningGmbH/MATH-lighteval/Counting & Probability':    0.432836,
+            'DigitalLearningGmbH/MATH-lighteval/Geometry':                  0.442105,
+            'DigitalLearningGmbH/MATH-lighteval/Intermediate Algebra':      0.280936,
+            'DigitalLearningGmbH/MATH-lighteval/Number Theory':             0.451852,
+            'DigitalLearningGmbH/MATH-lighteval/Prealgebra':                0.683662,
+            'DigitalLearningGmbH/MATH-lighteval/Precalculus':               0.302752,
+        }
+
     def _exp3(self, x, eta):
         e_x = np.exp(-eta * (x - np.max(x)))
         return e_x / np.sum(e_x)
@@ -172,7 +182,8 @@ class Exp3Sampler(AdaptiveSampler):
         # adv = h['rwd_mean'][-1] - self.initial_scrs[k] for k, h in self.hists.items()]
         # self.adv_cum[k] += adv[k] / self.weights[k]
         adv = np.array([
-            h['scr_mean'][-1] - self.initial_scrs[k]
+            # h['scr_mean'][-1] - self.initial_scrs[k]
+            h['scr_mean'][-1] - self.benchmarks[k]
             if h['step'][-1] == self.step else 0.
             for k, h in self.hists.items()
         ])
@@ -209,7 +220,7 @@ class ExpSampler(AdaptiveSampler):
             if len(h['scr_mean']) >= 2 else 0. #h['scr_mean'][-1] - self.initial_scrs[k]
             for k, h in self.hists.items()
         ]) / (self.weights + self.eps)
-        self.adv_mov = self.beta * self.adv_cum + (1 - self.beta) * adv
+        self.adv_mov = self.beta * self.adv_mov + (1 - self.beta) * adv
         self.adv_cum += self.adv_mov / (1 - self.beta**self.step)
         # set p
         eta = np.sqrt(np.log(self.n_sources) / (self.n_sources * self.step))

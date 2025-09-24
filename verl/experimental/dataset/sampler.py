@@ -161,14 +161,23 @@ class Exp3Sampler(AdaptiveSampler):
         self.adv_cum = np.zeros_like(self.weights)
         self.eps = 1e-3
 
+        # self.benchmarks = {
+        #     'DigitalLearningGmbH/MATH-lighteval/Algebra':                   0.727811,
+        #     'DigitalLearningGmbH/MATH-lighteval/Counting & Probability':    0.432836,
+        #     'DigitalLearningGmbH/MATH-lighteval/Geometry':                  0.437895,
+        #     'DigitalLearningGmbH/MATH-lighteval/Intermediate Algebra':      0.288740,
+        #     'DigitalLearningGmbH/MATH-lighteval/Number Theory':             0.418519,
+        #     'DigitalLearningGmbH/MATH-lighteval/Prealgebra':                0.680185,
+        #     'DigitalLearningGmbH/MATH-lighteval/Precalculus':               0.275229,
+        # }
         self.benchmarks = {
-            'DigitalLearningGmbH/MATH-lighteval/Algebra':                   0.732883,
-            'DigitalLearningGmbH/MATH-lighteval/Counting & Probability':    0.432836,
-            'DigitalLearningGmbH/MATH-lighteval/Geometry':                  0.442105,
-            'DigitalLearningGmbH/MATH-lighteval/Intermediate Algebra':      0.280936,
-            'DigitalLearningGmbH/MATH-lighteval/Number Theory':             0.451852,
-            'DigitalLearningGmbH/MATH-lighteval/Prealgebra':                0.683662,
-            'DigitalLearningGmbH/MATH-lighteval/Precalculus':               0.302752,
+            'DigitalLearningGmbH/MATH-lighteval/Algebra':                   0.724429,
+            'DigitalLearningGmbH/MATH-lighteval/Counting & Probability':    0.426439,
+            'DigitalLearningGmbH/MATH-lighteval/Geometry':                  0.421053,
+            'DigitalLearningGmbH/MATH-lighteval/Intermediate Algebra':      0.261984,
+            'DigitalLearningGmbH/MATH-lighteval/Number Theory':             0.412963,
+            'DigitalLearningGmbH/MATH-lighteval/Prealgebra':                0.694090,
+            'DigitalLearningGmbH/MATH-lighteval/Precalculus':               0.288073,
         }
 
     def _exp3(self, x, eta):
@@ -195,7 +204,7 @@ class Exp3Sampler(AdaptiveSampler):
         print(self.weights)
 
 
-class ExpSampler(AdaptiveSampler):
+class IncExp3Sampler(AdaptiveSampler):
     """
     Greedy sampler
     Implement the update method
@@ -224,7 +233,7 @@ class ExpSampler(AdaptiveSampler):
         self.adv_cum += self.adv_mov / (1 - self.beta**self.step)
         # set p
         eta = np.sqrt(np.log(self.n_sources) / (self.n_sources * self.step))
-        self.weights = self._exp3(self.adv_cum, eta=eta)
+        self.weights = self._exp3(-self.adv_cum, eta=eta)
         print(self.adv_mov)
         print(self.adv_cum)
         print(self.weights)
